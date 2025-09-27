@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # Main application
+  taskmaster:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskmaster-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongo:27017/taskmaster
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - taskmaster-network
+    restart: unless-stopped
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
+
+  # MongoDB database
+  mongo:
+    image: mongo:6.0-jammy
+    container_name: taskmaster-db
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password123
+      - MONGO_INITDB_DATABASE=taskmaster
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - taskmaster-network
+    restart: unless-stopped
+
+  # Redis for caching
+  redis:
+    image: redis:7.2-alpine
+    container_name: taskmaster-cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - taskmaster-network
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  taskmaster-network:
+    driver: bridge
