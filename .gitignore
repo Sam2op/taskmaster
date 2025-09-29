@@ -1,2 +1,16 @@
 node_modules/
 
+devops-key.pem
+
+docker-compose.yml
+
+monitoring/
+
+nginx/
+
+test/
+
+.dockerignore
+
+.env
+

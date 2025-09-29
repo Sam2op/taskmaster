@@ -1,0 +1,58 @@
+name: Build and Deploy Frontend on EC2
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout repo
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2️⃣ Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 3️⃣ Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t taskmaster-frontend:latest .
+
+      # 4️⃣ Tag Docker image for Docker Hub
+      - name: Tag Docker image
+        run: |
+          docker tag taskmaster-frontend:latest kubesami2250/taskmaster:latest
+
+      # 5️⃣ Push Docker image to Docker Hub
+      - name: Push Docker image
+        run: |
+          docker push kubesami2250/taskmaster:latest
+
+      # 6️⃣ Set up SSH key for EC2
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      # 7️⃣ Deploy to EC2
+      - name: Deploy Docker container to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            # Pull latest image from Docker Hub
+            docker pull kubesami2250/taskmaster:latest
+
+            # Stop existing container if running
+            docker stop taskmaster || true
+            docker rm taskmaster || true
+
+            # Run container
+            docker run -d -p 3000:3000 --restart unless-stopped --name taskmaster kubesami2250/taskmaster:latest
+          EOF

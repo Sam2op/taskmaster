@@ -1,33 +1,31 @@
-# Use Node.js 18 Alpine as base image for smaller size
-FROM node:18-alpine
+# Stage 1: Build frontend
+FROM node:20-alpine AS build
 
-# Set working directory
+WORKDIR /app/frontend
+
+# Copy package files and install dependencies
+COPY frontend/package*.json ./
+RUN npm install
+
+# Copy all frontend files
+COPY frontend/ ./
+
+# Build the frontend (creates build/ folder)
+RUN npm run build
+
+# Stage 2: Serve frontend with Node
+FROM node:20-alpine
+
 WORKDIR /app
 
-# Add metadata
-LABEL maintainer="your-email@example.com"
-LABEL description="TaskMaster - Modern To-Do List Application"
-LABEL version="1.0.0"
+# Copy built frontend from previous stage
+COPY --from=build /app/frontend/build ./frontend/build
 
-# Install dependencies first for better caching
-COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
-
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S taskmaster -u 1001
-
-# Copy application files
-COPY . .
-RUN chown -R taskmaster:nodejs /app
-USER taskmaster
+# Install a lightweight server to serve static files
+RUN npm install -g serve
 
 # Expose port
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
-
-# Start the application
-CMD ["npm", "start"]
+# Serve the static build
+CMD ["serve", "-s", "frontend/build", "-l", "3000"]

@@ -255,9 +255,8 @@ app.delete('/api/tasks/:id', (req, res) => {
 
 // Serve frontend for all other routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend', 'public','index.html'));
+  res.sendFile(path.join(__dirname, 'public' , 'index.html'));
 });
-
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -270,11 +269,8 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`🚀 TaskMaster server is running on port ${PORT}`);
-  console.log(`📱 Frontend: http://localhost:${PORT}`);
-  console.log(`🔗 API: http://localhost:${PORT}/api/health`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`TaskMaster server is running on http://localhost:${PORT}`);
 });
 
 module.exports = app;
